@@ -29,9 +29,15 @@ var applyOperation = function(operation)
 	return true;
 }
 
+var cursors = {};
 io.sockets.on('connection', function(socket) {
 	var user = Math.random().toString(36).slice(2);
 	console.log("connected - "+user);
+
+	for(var otheruser in cursors) {
+		if(!cursors.hasOwnProperty(otheruser)) continue;
+		socket.emit('cursor', {user: otheruser, cursor: cursors[otheruser]});
+	}
 
 	socket.on('get', function(callback) {
 		callback({version: version, content: content});
@@ -47,6 +53,13 @@ io.sockets.on('connection', function(socket) {
 	});
 
 	socket.on('cursor', function(cursor) {
+		cursors[user] = cursor;
 		socket.broadcast.emit('cursor', {user: user, cursor: cursor});
+	});
+
+	socket.on('disconnect', function() {
+		socket.broadcast.emit('cursorremove', user);
+		delete cursors[user];
+		console.log("Disconnected - "+user);
 	});
 });

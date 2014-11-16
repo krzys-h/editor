@@ -100,4 +100,8 @@ socket.on('cursor', function(data) {
 		editor.getSession().removeMarker(cursors[data.user]);
 	cursors[data.user] = editor.getSession().addMarker(new Range(data.cursor.row, data.cursor.column, data.cursor.row, data.cursor.column+1), "ace_cursor", data.user);
 });
+socket.on('cursorremove', function(user) {
+	editor.getSession().removeMarker(cursors[user]);
+	delete cursors[user];
+});
 </script>
