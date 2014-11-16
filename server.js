@@ -11,9 +11,7 @@ var io = require('socket.io').listen(app);
 app.listen(8080);
 
 var version = 0;
-var content = "start data";
-// sample operation:
-// {version: 0, position: 4, insert: 'test'}
+var content = "";
 var applyOperation = function(operation)
 {
 	if(operation.version < version) {
@@ -31,13 +29,9 @@ var applyOperation = function(operation)
 	return true;
 }
 
-console.log(version, content);
-applyOperation({version: version, position: 5, insert: ' test'});
-applyOperation({version: version, position: 0, remove: 5});
-applyOperation({version: version, position: 0, insert: 'end'});
-
 io.sockets.on('connection', function(socket) {
-	console.log("connected");
+	var user = Math.random().toString(36).slice(2);
+	console.log("connected - "+user);
 
 	socket.on('get', function(callback) {
 		callback({version: version, content: content});
@@ -50,5 +44,9 @@ io.sockets.on('connection', function(socket) {
 		} else {
 			callback({success: false});
 		}
+	});
+
+	socket.on('cursor', function(cursor) {
+		socket.broadcast.emit('cursor', {user: user, cursor: cursor});
 	});
 });
