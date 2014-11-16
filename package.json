@@ -1,0 +1,19 @@
+{
+  "name": "editor",
+  "version": "0.0.1",
+  "description": "Live editor",
+  "keywords": [
+    "editor"
+  ],
+  "homepage": "",
+  "author": {
+    "name": "krzys_h",
+    "email": "krzys_h@interia.pl"
+  },
+  "dependencies": {
+    "socket.io": "~1.2.0",
+    "node-static": "~0.7.6"
+  },
+  "engine": "node >= 0.10",
+  "main": "server.js"
+}
