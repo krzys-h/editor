@@ -11,7 +11,7 @@ var io = require('socket.io').listen(app);
 app.listen(8080);
 
 var version = 0;
-var content = "";
+var content = "krzys_h's live collaborative editor\n===================================\nWelcome!\nType anything in here, and other users will see it!\nOpen this page in another browser window to see it changing live yourself!\n\n";
 var applyOperation = function(operation)
 {
 	if(operation.version < version) {
