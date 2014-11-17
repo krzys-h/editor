@@ -82,6 +82,7 @@ editor.getSession().selection.on('changeCursor', function(e) {
 var socket = io.connect();
 socket.on('connect', function() {
 	socket.emit('get', function(response) {
+		loaded = false;
 		version = response.version;
 		content = response.content;
 		editor.getSession().setValue(content);
