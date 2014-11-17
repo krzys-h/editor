@@ -1,3 +1,5 @@
+var fs = require('fs');
+
 var file = new (require('node-static').Server)('./static');
 
 var app = require('http').createServer(
@@ -12,6 +14,10 @@ app.listen(8080);
 
 var version = 0;
 var content = "krzys_h's live collaborative editor\n===================================\nWelcome!\nType anything in here, and other users will see it!\nOpen this page in another browser window to see it changing live yourself!\n\n";
+if(fs.existsSync('./content.txt')) {
+	content = fs.readFileSync('./content.txt').toString();
+}
+
 var applyOperation = function(operation)
 {
 	if(operation.version < version) {
@@ -63,3 +69,7 @@ io.sockets.on('connection', function(socket) {
 		console.log("Disconnected - "+user);
 	});
 });
+
+setInterval(function() {
+	fs.writeFileSync('./content.txt', content);
+}, 1000);

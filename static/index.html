@@ -112,4 +112,11 @@ socket.on('cursorremove', function(user) {
 	editor.getSession().removeMarker(cursors[user]);
 	delete cursors[user];
 });
+socket.on('disconnect', function() {
+	for(var otheruser in cursors) {
+		if(!cursors.hasOwnProperty(otheruser)) continue;
+		editor.getSession().removeMarker(cursors[otheruser]);
+		delete cursors[otheruser];
+	}
+});
 </script>
