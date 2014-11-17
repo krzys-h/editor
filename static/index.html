@@ -69,6 +69,12 @@ editor.getSession().on('change', function(e) {
 			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), remove: e.data.text.length}, success_cb);
 		break;
 
+		case "insertLines":
+			var t = "";
+			for(var i=0; i<e.data.lines.length; i++) t += e.data.lines[i]+"\n";
+			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), insert: t}, success_cb);
+		break;
+
 		case "removeLines":
 			var l = 0;
 			for(var i=0; i<e.data.lines.length; i++) l += e.data.lines[i].length+1;
