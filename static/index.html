@@ -8,9 +8,22 @@
 		left: 0;
 		right: 0;
 	}
+
+	#error {
+		background-color: red;
+		color: white;
+		position: absolute;
+		top: 0;
+		left: 20%;
+		right: 20%;
+		height: 25%;
+		font-size: 150%;
+		text-align: center;
+	}
 </style>
 <div id="editor"></div>
 <a href="https://github.com/krzys-h/editor"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
+<div id="error" style="display: none;"></div>
 <script>
 var version;
 var content;
@@ -18,8 +31,11 @@ var loaded = false;
 var Range = ace.require('ace/range').Range;
 
 var success_cb = function(data) {
-	if(!data.success) console.error("Operation dropped", data);
-	else version = data.version;
+	if(!data.success) {
+		console.error("Operation dropped", data);
+		document.getElementById("error").style.display = "block";
+		document.getElementById("error").innerHTML = "Operation dropped (TODO)<br>Please refresh";
+	} else version = data.version;
 }
 
 var translatePosition = function(pos) {
@@ -95,6 +111,9 @@ socket.on('connect', function() {
 		editor.getSession().setValue(content);
 		console.log("Editor started with document version "+version);
 		loaded = true;
+
+		document.getElementById("error").style.display = "none";
+		document.getElementById("error").innerHTML = "";
 	});
 });
 
@@ -118,5 +137,8 @@ socket.on('disconnect', function() {
 		editor.getSession().removeMarker(cursors[otheruser]);
 		delete cursors[otheruser];
 	}
+
+	document.getElementById("error").style.display = "block";
+	document.getElementById("error").innerHTML = "Connection lost";
 });
 </script>
