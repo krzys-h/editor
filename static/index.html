@@ -1,12 +1,25 @@
 <script src="socket.io/socket.io.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/ace/1.1.3/ace.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+
 <style>
 	#editor {
 		position: absolute;
 		top: 0;
 		bottom: 0;
-		left: 0;
+		left: 128px;
 		right: 0;
+	}
+	
+	#fileselect {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 128px;
 	}
 
 	#error {
@@ -21,124 +34,14 @@
 		text-align: center;
 	}
 </style>
-<div id="editor"></div>
+
+<div>
+	<div id="fileselect">
+		<table class="table">
+		</table>
+	</div>
+	<div id="editor"></div>
+</div>
 <a href="https://github.com/krzys-h/editor"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
 <div id="error" style="display: none;"></div>
-<script>
-var version;
-var content;
-var loaded = false;
-var Range = ace.require('ace/range').Range;
-
-var success_cb = function(data) {
-	if(!data.success) {
-		console.error("Operation dropped", data);
-		document.getElementById("error").style.display = "block";
-		document.getElementById("error").innerHTML = "Operation dropped (TODO)<br>Please refresh";
-	} else version = data.version;
-}
-
-var translatePosition = function(pos) {
-	var p = 0;
-	for(var i=0; i<pos.row; i++) p += editor.getSession().getLine(i).length+1;
-	p += pos.column;
-	return p;
-}
-
-var translatePositionBack = function(pos) {
-	var p = {row: 0, column: 0};
-	for(var i=0; editor.getSession().getLine(i).length < pos; i++) {
-		p.row ++;
-		pos -= editor.getSession().getLine(i).length+1;
-	}
-	p.column = pos;
-	return p;
-}
-
-var applyOperation = function(operation)
-{
-	loaded = false;
-	console.log(operation);
-	if(typeof operation.insert !== 'undefined') {
-		editor.getSession().insert(translatePositionBack(operation.position), operation.insert);
-	} else if(typeof operation.remove !== 'undefined') {
-		var start = translatePositionBack(operation.position);
-		var end = translatePositionBack(operation.position+operation.remove);
-		editor.getSession().remove(new Range(start.row, start.column, end.row, end.column));
-	}
-	version = operation.version+1;
-	loaded = true;
-}
-
-var editor = ace.edit("editor");
-editor.setTheme("ace/theme/monokai");
-editor.getSession().setMode("ace/mode/text");
-editor.getSession().on('change', function(e) {
-	if(!loaded) return;
-	console.log(e.data);
-	switch(e.data.action) {
-		case "insertText":
-			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), insert: e.data.text}, success_cb);
-		break;
-
-		case "removeText":
-			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), remove: e.data.text.length}, success_cb);
-		break;
-
-		case "insertLines":
-			var t = "";
-			for(var i=0; i<e.data.lines.length; i++) t += e.data.lines[i]+"\n";
-			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), insert: t}, success_cb);
-		break;
-
-		case "removeLines":
-			var l = 0;
-			for(var i=0; i<e.data.lines.length; i++) l += e.data.lines[i].length+1;
-			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), remove: l}, success_cb);
-		break;
-	}
-});
-editor.getSession().selection.on('changeCursor', function(e) {
-	socket.emit('cursor', editor.selection.getCursor());
-});
-
-var socket = io.connect();
-socket.on('connect', function() {
-	socket.emit('get', function(response) {
-		loaded = false;
-		version = response.version;
-		content = response.content;
-		editor.getSession().setValue(content);
-		console.log("Editor started with document version "+version);
-		loaded = true;
-
-		document.getElementById("error").style.display = "none";
-		document.getElementById("error").innerHTML = "";
-	});
-});
-
-socket.on('operation', function(operation) {
-	applyOperation(operation);
-});
-
-var cursors = {};
-socket.on('cursor', function(data) {
-	if(typeof cursors[data.user] !== "undefined")
-		editor.getSession().removeMarker(cursors[data.user]);
-	cursors[data.user] = editor.getSession().addMarker(new Range(data.cursor.row, data.cursor.column, data.cursor.row, data.cursor.column+1), "ace_cursor", data.user);
-});
-socket.on('cursorremove', function(user) {
-	editor.getSession().removeMarker(cursors[user]);
-	delete cursors[user];
-});
-socket.on('disconnect', function() {
-	for(var otheruser in cursors) {
-		if(!cursors.hasOwnProperty(otheruser)) continue;
-		editor.getSession().removeMarker(cursors[otheruser]);
-		delete cursors[otheruser];
-	}
-
-	document.getElementById("error").style.display = "block";
-	document.getElementById("error").innerHTML = "Connection lost";
-});
-</script>
+<script src="client.js"></script>

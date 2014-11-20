@@ -1,37 +1,62 @@
+var PORT = 8080;
+
+
+
+
 var fs = require('fs');
 
-var file = new (require('node-static').Server)('./static');
+var static_files = new (require('node-static').Server)('./static');
 
 var app = require('http').createServer(
 	function (req, res) {
-		file.serve(req, res);
+		static_files.serve(req, res);
 	}
 );
 
 var io = require('socket.io').listen(app);
 
-app.listen(8080);
+app.listen(PORT);
 
-var version = 0;
-var content = "krzys_h's live collaborative editor\n===================================\nWelcome!\nType anything in here, and other users will see it!\nOpen this page in another browser window to see it changing live yourself!\n\n";
-if(fs.existsSync('./content.txt')) {
-	content = fs.readFileSync('./content.txt').toString();
+var files = {};
+try {
+	var filelist = fs.readdirSync("./storage");
+	console.log(filelist);
+	
+	for(var i=0; i<filelist.length; i++) {
+		var filename = filelist[i];
+		files[filename] = {
+			version: 0,
+			content: fs.readFileSync('./storage/'+filename).toString()
+		};
+	}
+} catch(err) {
+	fs.mkdirSync("./storage");
+	files["hello.txt"] = {
+		version: 0,
+		content: "krzys_h's live collaborative editor\n===================================\nWelcome!\nType anything in here, and other users will see it!\nOpen this page in another browser window to see it changing live yourself!\n\n"
+	};
 }
+
+setInterval(function() {
+	for(var filename in files) {
+		if(!files.hasOwnProperty(filename)) continue;
+		fs.writeFileSync('./storage/'+filename, files[filename].content);
+	}
+}, 1000);
 
 var applyOperation = function(operation)
 {
-	if(operation.version < version) {
+	if(operation.version < files[operation.filename].version) {
 		console.error("Dropped operation, bad version (TODO)", operation);
 		return false;
 	}
 	if(typeof operation.insert !== 'undefined') {
-		content = [content.slice(0, operation.position), operation.insert, content.slice(operation.position)].join('');
-		version++;
+		files[operation.filename].content = [files[operation.filename].content.slice(0, operation.position), operation.insert, files[operation.filename].content.slice(operation.position)].join('');
+		files[operation.filename].version++;
 	} else if(typeof operation.remove !== 'undefined') {
-		content = [content.slice(0, operation.position), content.slice(operation.position+operation.remove)].join('');
-		version++;
+		files[operation.filename].content = [files[operation.filename].content.slice(0, operation.position), files[operation.filename].content.slice(operation.position+operation.remove)].join('');
+		files[operation.filename].version++;
 	}
-	console.log(version, content);
 	return true;
 }
 
@@ -39,20 +64,37 @@ var cursors = {};
 io.sockets.on('connection', function(socket) {
 	var user = Math.random().toString(36).slice(2);
 	console.log("connected - "+user);
+	var edited_file;
 
 	for(var otheruser in cursors) {
 		if(!cursors.hasOwnProperty(otheruser)) continue;
 		socket.emit('cursor', {user: otheruser, cursor: cursors[otheruser]});
 	}
 
-	socket.on('get', function(callback) {
-		callback({version: version, content: content});
+	socket.emit('filelist', Object.keys(files));
+
+	socket.on('open', function(filename, callback) {
+		socket.join(filename);
+		edited_file = filename;
+		if(typeof files[filename] === 'undefined') {
+			files[filename] = {
+				version: 0,
+				content: ""
+			};
+			socket.emit('filelist', Object.keys(files));
+		}
+		callback({version: files[filename].version, content: files[filename].content});
+	});
+
+	socket.on('close', function() {
+		socket.leave(edited_file);
+		delete edited_file;
 	});
 
 	socket.on('post', function(operation, callback) {
 		if(applyOperation(operation)) {
-			callback({success: true, version: version});
-			socket.broadcast.emit('operation', operation);
+			callback({success: true, version: files[operation.filename].version});
+			socket.broadcast.to(operation.filename).emit('operation', operation);
 		} else {
 			callback({success: false});
 		}
@@ -69,7 +111,3 @@ io.sockets.on('connection', function(socket) {
 		console.log("Disconnected - "+user);
 	});
 });
-
-setInterval(function() {
-	fs.writeFileSync('./content.txt', content);
-}, 1000);
