@@ -4,6 +4,9 @@ var EDIT_PASSWORD = "";
 
 
 var fs = require('fs');
+var mkdirp = require('mkdirp');
+var path = require('path');
+var fsextended = require('fs-extended');
 
 var static_files = new (require('node-static').Server)('./static');
 
@@ -19,7 +22,7 @@ app.listen(PORT);
 
 var files = {};
 try {
-	var filelist = fs.readdirSync("./storage");
+	var filelist = fsextended.listFilesSync("./storage", {recursive: true});
 	console.log(filelist);
 	
 	for(var i=0; i<filelist.length; i++) {
@@ -40,6 +43,8 @@ try {
 setInterval(function() {
 	for(var filename in files) {
 		if(!files.hasOwnProperty(filename)) continue;
+		var dir = path.dirname('./storage/'+filename);
+		mkdirp.sync(dir);
 		fs.writeFileSync('./storage/'+filename, files[filename].content);
 	}
 }, 1000);
