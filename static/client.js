@@ -47,31 +47,32 @@ var editor = ace.edit("editor");
 editor.setTheme("ace/theme/monokai");
 editor.getSession().setMode("ace/mode/text");
 editor.getSession().on('change', function(e) {
-	if(!loaded) return;
+	if(!loaded || typeof filename == 'undefined') return;
 	console.log(e.data);
 	switch(e.data.action) {
 		case "insertText":
-			socket.emit('post', {filename: filename, version: version++, position: translatePosition(e.data.range.start), insert: e.data.text}, success_cb);
+			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), insert: e.data.text}, success_cb);
 		break;
 
 		case "removeText":
-			socket.emit('post', {filename: filename, version: version++, position: translatePosition(e.data.range.start), remove: e.data.text.length}, success_cb);
+			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), remove: e.data.text.length}, success_cb);
 		break;
 
 		case "insertLines":
 			var t = "";
 			for(var i=0; i<e.data.lines.length; i++) t += e.data.lines[i]+"\n";
-			socket.emit('post', {filename: filename, version: version++, position: translatePosition(e.data.range.start), insert: t}, success_cb);
+			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), insert: t}, success_cb);
 		break;
 
 		case "removeLines":
 			var l = 0;
 			for(var i=0; i<e.data.lines.length; i++) l += e.data.lines[i].length+1;
-			socket.emit('post', {filename: filename, version: version++, position: translatePosition(e.data.range.start), remove: l}, success_cb);
+			socket.emit('post', {version: version++, position: translatePosition(e.data.range.start), remove: l}, success_cb);
 		break;
 	}
 });
 editor.getSession().selection.on('changeCursor', function(e) {
+	if(!loaded || typeof filename == 'undefined') return;
 	socket.emit('cursor', editor.selection.getCursor());
 });
 
@@ -84,6 +85,11 @@ var openFile = function(fname)
 	
 	if(typeof filename !== 'undefined')
 	{
+		for(var otheruser in cursors) {
+			if(!cursors.hasOwnProperty(otheruser)) continue;
+			editor.getSession().removeMarker(cursors[otheruser]);
+			delete cursors[otheruser];
+		}
 		socket.emit('close');
 	}
 	
@@ -139,6 +145,7 @@ socket.on('cursor', function(data) {
 	cursors[data.user] = editor.getSession().addMarker(new Range(data.cursor.row, data.cursor.column, data.cursor.row, data.cursor.column+1), "ace_cursor", data.user);
 });
 socket.on('cursorremove', function(user) {
+	if(typeof cursors[user] == 'undefined') return;
 	editor.getSession().removeMarker(cursors[user]);
 	delete cursors[user];
 });
