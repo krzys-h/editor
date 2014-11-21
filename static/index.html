@@ -33,6 +33,12 @@
 	.action {
 		float: right;
 	}
+	
+	#login {
+		position: absolute;
+		bottom: 0;
+		margin: 8px;
+	}
 
 	#error {
 		background-color: red;
@@ -51,6 +57,9 @@
 	<div id="fileselect">
 		<table class="table">
 		</table>
+		<div id="login">
+			<a href="#" onclick="loginButton()" class="btn btn-default"><span class="glyphicon glyphicon-lock"></span></a>
+		</div>
 	</div>
 	<div id="editor" style="display: none;"></div>
 </div>

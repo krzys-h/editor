@@ -132,6 +132,17 @@ var deleteFile = function(fname) {
 	}
 }
 
+var loginButton = function() {
+	var pw = prompt("Password");
+	if(pw != null) {
+		socket.emit('login', pw, function() {
+			if(confirm("Save password?")) {
+				localStorage.password = pw;
+			}
+		});
+	}
+}
+
 socket.on('reconnect', function() {
 	var fname = filename;
 	delete filename;
@@ -152,6 +163,17 @@ socket.on('operation', function(operation) {
 
 socket.on('close', function() {
 	closeFile();
+});
+
+socket.on('editmode', function(mode) {
+	editor.setReadOnly(!mode);
+	document.styleSheets[0].addRule(".action", "display: "+(mode ? "inline" : "none")); // TODO: Better solution?
+	if(!mode) {
+		if(typeof localStorage.password !== 'undefined') {
+			socket.emit('login', localStorage.password);
+		}
+	}
+	document.getElementById("login").style.display = mode ? "none" : "block";
 });
 
 var cursors = {};

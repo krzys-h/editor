@@ -1,5 +1,5 @@
 var PORT = 8080;
-
+var EDIT_PASSWORD = "";
 
 
 
@@ -65,13 +65,16 @@ io.sockets.on('connection', function(socket) {
 	var user = Math.random().toString(36).slice(2);
 	console.log("connected - "+user);
 	var edited_file;
+	var can_edit = (EDIT_PASSWORD == "");
 
 	socket.emit('filelist', Object.keys(files));
+	socket.emit('editmode', can_edit);
 
 	socket.on('open', function(filename, callback) {
 		socket.join(filename);
 		edited_file = filename;
 		if(typeof files[filename] === 'undefined') {
+			if(!can_edit) return;
 			files[filename] = {
 				version: 0,
 				content: ""
@@ -94,13 +97,25 @@ io.sockets.on('connection', function(socket) {
 	});
 	
 	socket.on('delete', function(filename) {
+		if(!can_edit) return;
 		io.sockets.to(filename).emit('close');
 		fs.unlinkSync('./storage/'+filename);
 		delete files[filename];
 		io.sockets.emit('filelist', Object.keys(files));
 	});
+	
+	socket.on('login', function(password, callback) {
+		if(!can_edit && password == EDIT_PASSWORD) {
+			can_edit = true;
+			socket.emit('editmode', can_edit);
+			if(typeof callback !== 'undefined') {
+				callback();
+			}
+		}
+	});
 
 	socket.on('post', function(operation, callback) {
+		if(!can_edit) return;
 		if(applyOperation(files[edited_file], operation)) {
 			callback({success: true, version: files[edited_file].version});
 			socket.broadcast.to(edited_file).emit('operation', operation);
@@ -110,6 +125,7 @@ io.sockets.on('connection', function(socket) {
 	});
 
 	socket.on('cursor', function(cursor) {
+		if(!can_edit) return;
 		cursors[user] = {cursor: cursor, file: edited_file};
 		socket.broadcast.to(edited_file).emit('cursor', {user: user, cursor: cursor});
 	});
