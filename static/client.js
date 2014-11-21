@@ -78,6 +78,23 @@ editor.getSession().selection.on('changeCursor', function(e) {
 
 var socket = io.connect();
 
+var extension = function(fname) {
+	var fileSplit = fname.split('.');
+	var fileExt = '';
+	if (fileSplit.length > 1) {
+		fileExt = fileSplit[fileSplit.length - 1];
+	}
+	return fileExt;
+};
+
+var ext_map = {};
+ext_map["php"] = "php";
+ext_map["html"] = "html";
+ext_map["htm"] = "html";
+ext_map["js"] = "javascript";
+ext_map["json"] = "json";
+ext_map["sql"] = "mysql";
+
 var filename;
 var openFile = function(fname)
 {
@@ -101,6 +118,12 @@ var openFile = function(fname)
 		version = response.version;
 		content = response.content;
 		editor.getSession().setValue(content);
+		var ext = extension(filename);
+		if(typeof ext !== 'undefined' && typeof ext_map[ext] !== 'undefined') {
+			editor.getSession().setMode("ace/mode/"+ext_map[ext]);
+		} else {
+			editor.getSession().setMode("ace/mode/text");
+		}
 		console.log("Editor started for file "+filename+" with document version "+version);
 		loaded = true;
 
