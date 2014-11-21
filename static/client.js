@@ -143,7 +143,7 @@ socket.on('filelist', function(filelist) {
 	for(var i=0; i<filelist.length; i++) {
 		$('#fileselect > table').append('<tr><td><span class="filename"><a href="#" onclick="openFile(\''+filelist[i]+'\')">'+filelist[i]+'</a></span><span class="action"><a href="#" onclick="deleteFile(\''+filelist[i]+'\')" class="btn btn-default"><span class="glyphicon glyphicon-trash"></span></a></span></tr>');
 	}
-	$('#fileselect > table').append('<tr><td><a href="#" onclick="newFile()"><b>NEW FILE</b></a></td></tr>');
+	$('#fileselect > table').append('<tr><td><span class="filename"><i>New file</i></span><span class="action"><a href="#" onclick="newFile()" class="btn btn-default"><span class="glyphicon glyphicon-file"></span></a></span></td></tr>');
 });
 
 socket.on('operation', function(operation) {
