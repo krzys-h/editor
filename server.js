@@ -76,7 +76,7 @@ io.sockets.on('connection', function(socket) {
 				version: 0,
 				content: ""
 			};
-			socket.emit('filelist', Object.keys(files));
+			io.sockets.emit('filelist', Object.keys(files));
 		}
 		for(var otheruser in cursors) {
 			if(!cursors.hasOwnProperty(otheruser)) continue;
@@ -91,6 +91,13 @@ io.sockets.on('connection', function(socket) {
 		delete cursors[user];
 		socket.leave(edited_file);
 		delete edited_file;
+	});
+	
+	socket.on('delete', function(filename) {
+		io.sockets.to(filename).emit('close');
+		fs.unlinkSync('./storage/'+filename);
+		delete files[filename];
+		io.sockets.emit('filelist', Object.keys(files));
 	});
 
 	socket.on('post', function(operation, callback) {

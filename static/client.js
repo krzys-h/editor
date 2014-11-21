@@ -85,12 +85,7 @@ var openFile = function(fname)
 	
 	if(typeof filename !== 'undefined')
 	{
-		for(var otheruser in cursors) {
-			if(!cursors.hasOwnProperty(otheruser)) continue;
-			editor.getSession().removeMarker(cursors[otheruser]);
-			delete cursors[otheruser];
-		}
-		socket.emit('close');
+		closeFile();
 	}
 	
 	filename = fname;
@@ -111,12 +106,29 @@ var openFile = function(fname)
 
 		document.getElementById("error").style.display = "none";
 		document.getElementById("error").innerHTML = "";
+		document.getElementById("editor").style.display = "block";
 	});
 };
 var newFile = function() {
 	fname = prompt("Filename");
 	if(fname != null) {
 		openFile(fname);
+	}
+}
+
+var closeFile = function() {
+	for(var otheruser in cursors) {
+		if(!cursors.hasOwnProperty(otheruser)) continue;
+		editor.getSession().removeMarker(cursors[otheruser]);
+		delete cursors[otheruser];
+	}
+	socket.emit('close');
+	document.getElementById("editor").style.display = "none";
+}
+
+var deleteFile = function(fname) {
+	if(confirm("Are you sure you want to delete file "+fname+"?")) {
+		socket.emit('delete', fname);
 	}
 }
 
@@ -129,13 +141,17 @@ socket.on('reconnect', function() {
 socket.on('filelist', function(filelist) {
 	$('#fileselect > table').empty();
 	for(var i=0; i<filelist.length; i++) {
-		$('#fileselect > table').append('<tr><td><a href="#" onclick="openFile(\''+filelist[i]+'\')">'+filelist[i]+'</a></td></tr>');
+		$('#fileselect > table').append('<tr><td><span class="filename"><a href="#" onclick="openFile(\''+filelist[i]+'\')">'+filelist[i]+'</a></span><span class="action"><a href="#" onclick="deleteFile(\''+filelist[i]+'\')" class="btn btn-default"><span class="glyphicon glyphicon-trash"></span></a></span></tr>');
 	}
 	$('#fileselect > table').append('<tr><td><a href="#" onclick="newFile()"><b>NEW FILE</b></a></td></tr>');
 });
 
 socket.on('operation', function(operation) {
 	applyOperation(operation);
+});
+
+socket.on('close', function() {
+	closeFile();
 });
 
 var cursors = {};
